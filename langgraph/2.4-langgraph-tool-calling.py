@@ -10,14 +10,11 @@ from langgraph.graph import StateGraph, START, END
 # [本地工具库] 物理世界的真实函数
 # ==========================================
 def get_weather(location: str) -> str:
-    """真实 Python 函数，未来可以替换为调第三方 API 或查数据库"""
     print(f"   ⚙️ [本地物理机] 正在执行 get_weather 函数，传入参数: {location}")
-    # 模拟真实数据库
     weather_db = {"台北": "晴天，25度", "彰化": "夜风徐徐，气温 22 度，适合敲代码", "北京": "大风，10度"}
     return weather_db.get(location, "未知地区天气数据")
 
 
-# 【核心武器】大模型的“工具说明书” (严格遵循 JSON Schema)
 TOOLS_MANUAL = [{
     "type": "function",
     "function": {
@@ -35,67 +32,90 @@ TOOLS_MANUAL = [{
 
 
 # ==========================================
+# [环境侦测] 动态服务发现 (解决你的多机兼容问题)
+# ==========================================
+async def auto_detect_model() -> str:
+    """向本地 Ollama 查询已安装的模型，按优先级自动匹配"""
+    url = "http://localhost:11434/api/tags"
+    # 【架构师思维】你的优先级列表：首选 3.2:3b，次选 3:latest
+    candidates = ["llama3.2:3b", "llama3:latest", "llama3.2:latest", "llama3"]
+
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3)) as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    installed = [m["name"] for m in data.get("models", [])]
+
+                    # 遍历优先级列表，匹配本机存在的模型
+                    for target in candidates:
+                        if target in installed:
+                            return target
+    except Exception:
+        pass
+    return "llama3:latest"  # 如果探测失败，给一个兜底的默认值
+
+
+# ==========================================
 # [LangGraph 核心] 状态图纸与双节点
 # ==========================================
 class AgentState(TypedDict):
-    # 注意：现在存的是复杂的字典列表，不再是纯字符串了
     messages: Annotated[list[Dict[str, Any]], operator.add]
+    # 【核心新增】将模型配置作为状态的一部分存入黑板
+    model_name: str
 
 
 async def llm_node(state: AgentState):
-    """大模型节点：带着说明书去请求"""
-    print("🧠 [LLM 节点] 正在思考，并翻阅工具说明书...")
+    # 打工人从黑板上读取今天该用哪个模型干活
+    current_model = state.get("model_name", "llama3:latest")
+    print(f"🧠 [LLM 节点] 正在使用 {current_model} 思考，并翻阅工具说明书...")
 
-    # 【细节】必须使用 /api/chat 接口才能支持工具调用
     url = "http://localhost:11434/api/chat"
     payload = {
-        "model": "llama3.2:3b",
+        "model": current_model,
         "messages": state["messages"],
-        "tools": TOOLS_MANUAL,  # 把说明书拍在大模型脸上
+        "tools": TOOLS_MANUAL,
         "stream": False
     }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload) as response:
-            result = await response.json()
-            # 直接提取模型返回的 message 字典
-            ai_msg = result["message"]
-            return {"messages": [ai_msg]}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload) as response:
+                result = await response.json()
+
+                # 防弹机制：如果 Ollama 依然抛错，优雅拦截
+                if "message" not in result:
+                    error_detail = result.get("error", "未知底层错误")
+                    print(f"\n🚨 [Ollama 原始报错]: {error_detail}\n")
+                    return {"messages": [{"role": "assistant", "content": f"系统拦截到模型异常: {error_detail}"}]}
+
+                response.raise_for_status()
+                return {"messages": [result["message"]]}
+
+    except Exception as e:
+        print(f"❌ [请求物理异常]: {str(e)}")
+        return {"messages": [{"role": "assistant", "content": "大模型服务连接彻底失败"}]}
 
 
 async def tool_executor_node(state: AgentState):
-    """工具节点：负责把 JSON 指令变成真实的代码执行"""
     print("🛠️ [工具节点] 收到大模型的 JSON 调用指令，准备物理执行...")
     last_msg = state["messages"][-1]
 
-    # 提取大模型的指令
     tool_call = last_msg.get("tool_calls", [])[0]
     func_name = tool_call["function"]["name"]
     func_args = tool_call["function"]["arguments"]
 
-    # 动态执行本地代码
     if func_name == "get_weather":
         tool_result = get_weather(location=func_args["location"])
     else:
         tool_result = "未知的工具"
 
     print(f"   ✅ [本地物理机] 执行完毕，拿到物理结果: {tool_result}")
-
-    # 【灵魂操作】以 role: tool 的身份，把结果写回黑板
-    return {"messages": [{
-        "role": "tool",
-        "content": tool_result
-    }]}
+    return {"messages": [{"role": "tool", "content": tool_result}]}
 
 
-# ==========================================
-# [LangGraph 核心] 智能路由交警
-# ==========================================
 def should_continue(state: AgentState) -> str:
-    """交警：检查大模型是不是下达了工具调用指令"""
     last_msg = state["messages"][-1]
-
-    # 如果大模型返回了 tool_calls，说明它不打算聊天，它想调工具
     if "tool_calls" in last_msg and len(last_msg["tool_calls"]) > 0:
         print("👮 [路由交警] 侦测到工具调用请求！立刻切换铁轨 -> 走向工具车间。")
         return "tools"
@@ -108,31 +128,29 @@ def should_continue(state: AgentState) -> str:
 # [引擎启动] 组装图纸
 # ==========================================
 async def main():
-    workflow = StateGraph(AgentState)
+    # 【架构师操作 1】开机瞬间，自动侦测当前电脑环境！
+    best_model = await auto_detect_model()
+    print(f"🌐 [系统启动] 成功为当前电脑适配模型: {best_model}\n")
 
+    workflow = StateGraph(AgentState)
     workflow.add_node("agent", llm_node)
     workflow.add_node("action", tool_executor_node)
 
-    # 1. 发车去 agent
     workflow.add_edge(START, "agent")
-
-    # 2. agent 思考完，交给交警
-    workflow.add_conditional_edges(
-        "agent",
-        should_continue,
-        {"tools": "action", "end": END}
-    )
-
-    # 3. 【绝对核心】工具执行完，必须倒退回 agent！
+    workflow.add_conditional_edges("agent", should_continue, {"tools": "action", "end": END})
     workflow.add_edge("action", "agent")
 
     app = workflow.compile()
 
-    print("\n=== 2.4 Tool Calling 真机实战 ===")
-    initial_state = {"messages": [{"role": "user", "content": "请问彰化现在的天气怎么样？"}]}
+    print("=== 2.4 Tool Calling 真机兼容版实战 ===")
+
+    # 【架构师操作 2】依赖注入：把侦测到的模型名字，作为初始状态写入黑板
+    initial_state = {
+        "messages": [{"role": "user", "content": "请问彰化现在的天气怎么样？"}],
+        "model_name": best_model
+    }
 
     final_state = await app.ainvoke(initial_state)
-
     print("\n📊 [最终回复]:", final_state["messages"][-1].get("content"))
 
 
