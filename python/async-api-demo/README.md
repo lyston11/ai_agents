@@ -36,7 +36,7 @@ Ollama 默认运行在 `http://localhost:11434`
 ### 2. 安装依赖
 
 ```bash
-cd week1/async-api-demo
+cd python/async-api-demo
 pip install -r requirements.txt
 ```
 
