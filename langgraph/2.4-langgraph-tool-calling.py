@@ -53,7 +53,7 @@ async def auto_detect_model() -> str:
                             return target
     except Exception:
         pass
-    return "llama3:latest"  # 如果探测失败，给一个兜底的默认值
+    return "llama3.2:3b"  # 如果探测失败，给一个兜底的默认值
 
 
 # ==========================================
