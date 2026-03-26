@@ -7,6 +7,7 @@ anthropic>=0.18.0          # Anthropic Claude API
 langchain>=0.1.0           # LLM 应用框架
 langchain-openai>=0.0.5    # LangChain OpenAI 集成
 langchain-anthropic>=0.1.0 # LangChain Anthropic 集成
+langgraph-checkpoint-sqlite
 
 # === 异步和网络请求 ===
 httpx>=0.27.0              # 现代异步 HTTP 客户端
