@@ -5,6 +5,7 @@
 openai>=1.0.0              # OpenAI API 客户端
 anthropic>=0.18.0          # Anthropic Claude API
 langchain>=0.1.0           # LLM 应用框架
+langgraph>=1.1.6           # LangGraph 工作流框架
 langchain-openai>=0.0.5    # LangChain OpenAI 集成
 langchain-anthropic>=0.1.0 # LangChain Anthropic 集成
 langgraph-checkpoint-sqlite
@@ -29,5 +30,7 @@ rich>=13.0.0               # 美化终端输出
 tqdm>=4.66.0               # 进度条
 
 # === 可选: 向量数据库 ===
+psycopg[binary]>=3.3.3     # PostgreSQL 驱动 (2.9 RAG 记忆示例需要)
+pgvector>=0.4.2            # pgvector Python 集成 (2.9 RAG 记忆示例需要)
 # chromadb>=0.4.0          # 向量存储
 # faiss-cpu>=1.7.0         # Facebook 向量搜索
