@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "weekly-plan/2026-04-04_to_2026-04-10.md",
+                "file": "study-log/2026-04/2026-04-04.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-04-04_to_2026-04-10"
+              "title": "2026-04-04"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "weekly-plan/2026-04-04_to_2026-04-10.md",
+                "file": "study-log/2026-04/2026-04-04.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "2026-04-04_to_2026-04-10 的反向链接列表"
+              "title": "2026-04-04 的反向链接列表"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "weekly-plan/2026-04-04_to_2026-04-10.md",
+                "file": "study-log/2026-04/2026-04-04.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "2026-04-04_to_2026-04-10 的出链列表"
+              "title": "2026-04-04 的出链列表"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "weekly-plan/2026-04-04_to_2026-04-10.md",
+                "file": "study-log/2026-04/2026-04-04.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "2026-04-04_to_2026-04-10 的大纲"
+              "title": "2026-04-04 的大纲"
             }
           }
         ]
@@ -185,6 +185,10 @@
   },
   "active": "027d423b6362a6cf",
   "lastOpenFiles": [
+    "weekly-plan/2026-04-04_to_2026-04-10.md",
+    "lessons/README.md",
+    "lessons/2026-04-04-night.md",
+    "lessons",
     "study-log/README.md",
     "study-log/_template.md"
   ]
