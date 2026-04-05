@@ -14,6 +14,15 @@ NC='\033[0m' # No Color
 REPO_URL="git@github.com:lyston11/ai_agents.git"
 BRANCH="main"
 
+has_uncommitted_changes() {
+    [ -n "$(git status --porcelain)" ]
+}
+
+has_unpushed_commits() {
+    git rev-parse --verify "origin/$BRANCH" >/dev/null 2>&1 || return 1
+    [ "$(git rev-list --count "origin/$BRANCH..HEAD")" -gt 0 ]
+}
+
 # 显示使用说明
 show_help() {
     echo -e "${BLUE}═══════════════════════════════════════${NC}"
@@ -84,29 +93,33 @@ init_repo() {
 push_changes() {
     echo -e "${BLUE}📤 推送更改到 GitHub...${NC}"
     
-    # 检查是否有更改
-    if [ -z "$(git status --porcelain)" ]; then
-        echo -e "${YELLOW}⚠️  没有需要提交的更改${NC}"
+    # 检查是否有未提交或未推送的更改
+    if ! has_uncommitted_changes && ! has_unpushed_commits; then
+        echo -e "${YELLOW}⚠️  没有需要推送的更改${NC}"
         return
     fi
     
-    # 显示更改
-    echo -e "${BLUE}📋 当前更改:${NC}"
-    git status --short
-    
-    # 添加所有更改
-    git add .
-    
-    # 获取提交信息
-    echo -e "${YELLOW}💬 请输入提交信息（直接回车使用默认信息）:${NC}"
-    read commit_msg
-    
-    if [ -z "$commit_msg" ]; then
-        commit_msg="更新: $(date '+%Y-%m-%d %H:%M:%S')"
+    if has_uncommitted_changes; then
+        # 显示更改
+        echo -e "${BLUE}📋 当前更改:${NC}"
+        git status --short
+        
+        # 添加所有更改
+        git add .
+        
+        # 获取提交信息
+        echo -e "${YELLOW}💬 请输入提交信息（直接回车使用默认信息）:${NC}"
+        read commit_msg
+        
+        if [ -z "$commit_msg" ]; then
+            commit_msg="更新: $(date '+%Y-%m-%d %H:%M:%S')"
+        fi
+        
+        # 提交
+        git commit -m "$commit_msg"
+    else
+        echo -e "${BLUE}📋 当前没有未提交改动，直接推送已有提交...${NC}"
     fi
-    
-    # 提交
-    git commit -m "$commit_msg"
     
     # 推送
     git push origin $BRANCH
@@ -152,12 +165,8 @@ smart_sync() {
     
     echo ""
     
-    # 再推送
-    if [ -n "$(git status --porcelain)" ]; then
-        push_changes
-    else
-        echo -e "${GREEN}✅ 已是最新状态，无需推送${NC}"
-    fi
+    # 再推送（包含“工作区干净但本地已有提交未推送”的情况）
+    push_changes
 }
 
 # 克隆项目（在新电脑上使用）
